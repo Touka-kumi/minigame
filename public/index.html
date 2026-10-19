@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0616" />
+    <meta
+      name="description"
+      content="暗紫色雪花主题的周期算法测试页：每 2 分 30 秒一期，支持大、小、单、双、大单、小单、和值与猜数字。"
+    />
+    <title>雪境 · 周期测试</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <canvas id="snowfall" aria-hidden="true"></canvas>
+    <div class="ambient" aria-hidden="true">
+      <span class="aurora aurora-one"></span>
+      <span class="aurora aurora-two"></span>
+      <span class="aurora aurora-three"></span>
+      <span class="grain"></span>
+    </div>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="topbar-actions">
+          <button class="flow-btn recharge-button" id="rechargeButton" type="button" aria-haspopup="dialog" aria-controls="rechargeModal">
+            <span class="button-content">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4v16M4 12h16" />
+              </svg>
+              <span>充值</span>
+            </span>
+          </button>
+          <button class="flow-btn history-button" id="historyButton" type="button" aria-haspopup="dialog" aria-controls="historyModal">
+            <span class="button-content">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 12a9 9 0 1 0 3-6.7M3 4v6h6M12 7v5l3 2" />
+              </svg>
+              <span>历史</span>
+            </span>
+          </button>
+        </div>
+
+        <button class="balance-button" id="balanceButton" type="button" aria-haspopup="dialog" aria-controls="rechargeModal" title="点击充值">
+          <span class="coin" aria-hidden="true">
+            <svg viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="17" />
+              <path d="M14 15.5h12M14 21h12M20 11v18" />
+            </svg>
+          </span>
+          <span class="balance-copy">
+            <span>剩余金币</span>
+            <strong id="balanceValue">—</strong>
+          </span>
+          <span class="balance-delta" id="balanceDelta" aria-hidden="true"></span>
+        </button>
+      </header>
+
+      <main class="stage">
+        <section class="round-area" aria-label="本周期状态">
+          <div class="round-kicker" id="roundLabel">正在读取期号</div>
+          <div class="countdown" id="countdown">--:--</div>
+          <div class="countdown-progress" aria-hidden="true"><span id="progressBar"></span></div>
+          <div class="round-status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="roundStatus">连接中</span>
+          </div>
+          <div class="round-meta">
+            <span id="roundBetCount">本轮 0 注</span>
+            <span id="myRoundInfo">我的 0 注</span>
+          </div>
+        </section>
+
+        <section class="draw-area" id="drawArea" aria-label="上期开奖结果">
+          <div class="draw-heading">
+            <span id="resultLabel">上期开奖</span>
+            <strong id="resultOutcome">等待开奖</strong>
+          </div>
+          <div class="digits" id="resultDigits" aria-live="polite">
+            <div class="digit"><small>1</small><b>—</b></div>
+            <div class="digit"><small>2</small><b>—</b></div>
+            <div class="digit"><small>3</small><b>—</b></div>
+            <div class="digit"><small>4</small><b>—</b></div>
+            <div class="digit"><small>5</small><b>—</b></div>
+          </div>
+          <div class="draw-foot">
+            <span id="resultSum">和值 —</span>
+            <span id="resultMine">等待本期结算</span>
+          </div>
+        </section>
+      </main>
+
+      <section class="bet-dock" id="betDock" aria-label="投注区域">
+        <div class="dock-heading">
+          <div>
+            <p>投注金额</p>
+            <span>点击玩法立即下单</span>
+          </div>
+          <strong id="selectedAmountLabel">100 金币</strong>
+        </div>
+
+        <div class="amount-grid" id="amountGrid" role="group" aria-label="选择投注金额">
+          <button class="flow-btn amount-button" type="button" data-amount="100" aria-pressed="true">100</button>
+          <button class="flow-btn amount-button" type="button" data-amount="200" aria-pressed="false">200</button>
+          <button class="flow-btn amount-button" type="button" data-amount="500" aria-pressed="false">500</button>
+          <button class="flow-btn amount-button" type="button" data-amount="1000" aria-pressed="false">1000</button>
+          <button class="flow-btn amount-button" type="button" data-amount="2000" aria-pressed="false">2000</button>
+          <button class="flow-btn amount-button" type="button" data-amount="5000" aria-pressed="false">5000</button>
+          <button class="flow-btn amount-button" type="button" data-amount="10000" aria-pressed="false">10000</button>
+        </div>
+
+        <div class="bet-grid" id="betGrid" role="group" aria-label="选择玩法">
+          <button class="flow-btn bet-button" type="button" data-type="大">
+            <span class="bet-name">大</span><span class="bet-multiplier">2.2×</span>
+          </button>
+          <button class="flow-btn bet-button" type="button" data-type="小">
+            <span class="bet-name">小</span><span class="bet-multiplier">2.2×</span>
+          </button>
+          <button class="flow-btn bet-button" type="button" data-type="单">
+            <span class="bet-name">单</span><span class="bet-multiplier">2.2×</span>
+          </button>
+          <button class="flow-btn bet-button" type="button" data-type="双">
+            <span class="bet-name">双</span><span class="bet-multiplier">2.2×</span>
+          </button>
+          <button class="flow-btn bet-button combo-button" type="button" data-type="大单">
+            <span class="bet-name">大单</span><span class="bet-multiplier">4.7×</span>
+          </button>
+          <button class="flow-btn bet-button combo-button" type="button" data-type="小单">
+            <span class="bet-name">小单</span><span class="bet-multiplier">4.1×</span>
+          </button>
+          <button class="flow-btn bet-button middle-button" type="button" data-type="和值">
+            <span class="bet-name">和值</span><span class="bet-multiplier">8×</span>
+          </button>
+          <button class="flow-btn bet-button digit-button" id="digitBetButton" type="button" data-type="猜数字">
+            <span class="bet-name">猜数字</span><span class="bet-multiplier">9.7×</span>
+          </button>
+        </div>
+
+        <p class="dock-note">每 2 分 30 秒一期 · 开奖前 5 秒停投 · 每期最多 20 笔 · 普通玩法本期锁定一个结果 · 猜数字可更换</p>
+      </section>
+    </div>
+
+    <div class="modal" id="rechargeModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-card recharge-card" role="dialog" aria-modal="true" aria-labelledby="rechargeTitle">
+        <button class="modal-close" type="button" data-close-modal aria-label="关闭充值窗口">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+        <p class="modal-kicker">SIMULATED TOP-UP</p>
+        <h2 id="rechargeTitle">模拟充值</h2>
+        <div class="modal-balance">
+          <span>当前余额</span>
+          <strong><i>❄</i><span id="modalBalance">—</span></strong>
+        </div>
+
+        <div class="recharge-grid" id="rechargeGrid">
+          <button class="flow-btn recharge-option" type="button" data-recharge="1000"><span>1,000</span><small>金币</small></button>
+          <button class="flow-btn recharge-option" type="button" data-recharge="5000"><span>5,000</span><small>金币</small></button>
+          <button class="flow-btn recharge-option" type="button" data-recharge="10000"><span>10,000</span><small>金币</small></button>
+          <button class="flow-btn recharge-option" type="button" data-recharge="50000"><span>50,000</span><small>金币</small></button>
+          <button class="flow-btn recharge-option" type="button" data-recharge="100000"><span>100,000</span><small>金币</small></button>
+        </div>
+
+        <form class="custom-recharge" id="customRechargeForm">
+          <label for="customRechargeInput">自定义金额</label>
+          <div class="custom-row">
+            <input id="customRechargeInput" name="amount" type="number" min="1" max="100000" step="1" inputmode="numeric" placeholder="1 – 100000" autocomplete="off" />
+            <button class="flow-btn custom-submit" type="submit"><span class="button-content">确认充值</span></button>
+          </div>
+        </form>
+
+        <p class="modal-note">模拟功能，不产生真实支付。</p>
+      </div>
+    </div>
+
+    <div class="modal" id="guessModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-card guess-card" role="dialog" aria-modal="true" aria-labelledby="guessTitle">
+        <button class="modal-close" type="button" data-close-modal aria-label="关闭猜数字窗口">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+        <p class="modal-kicker">GUESS A DIGIT · 9.7×</p>
+        <h2 id="guessTitle">猜数字</h2>
+        <p class="guess-desc">猜中五位结果中对应位数的数字，命中返还总额 9.7 倍。</p>
+
+        <div class="guess-step">
+          <span class="guess-label">选择位数</span>
+          <div class="position-grid" id="positionGrid" role="group" aria-label="选择位数">
+            <button class="flow-btn position-button" type="button" data-position="1" aria-pressed="true">第 1 位</button>
+            <button class="flow-btn position-button" type="button" data-position="2" aria-pressed="false">第 2 位</button>
+            <button class="flow-btn position-button" type="button" data-position="3" aria-pressed="false">第 3 位</button>
+            <button class="flow-btn position-button" type="button" data-position="4" aria-pressed="false">第 4 位</button>
+            <button class="flow-btn position-button" type="button" data-position="5" aria-pressed="false">第 5 位</button>
+          </div>
+        </div>
+
+        <div class="guess-step">
+          <span class="guess-label">选择数字</span>
+          <div class="digit-grid" id="digitGrid" role="group" aria-label="选择数字">
+            <button class="flow-btn digit-choice" type="button" data-digit="0" aria-pressed="false">0</button>
+            <button class="flow-btn digit-choice" type="button" data-digit="1" aria-pressed="false">1</button>
+            <button class="flow-btn digit-choice" type="button" data-digit="2" aria-pressed="false">2</button>
+            <button class="flow-btn digit-choice" type="button" data-digit="3" aria-pressed="false">3</button>
+            <button class="flow-btn digit-choice" type="button" data-digit="4" aria-pressed="false">4</button>
+            <button class="flow-btn digit-choice" type="button" data-digit="5" aria-pressed="false">5</button>
+            <button class="flow-btn digit-choice" type="button" data-digit="6" aria-pressed="false">6</button>
+            <button class="flow-btn digit-choice" type="button" data-digit="7" aria-pressed="false">7</button>
+            <button class="flow-btn digit-choice" type="button" data-digit="8" aria-pressed="false">8</button>
+            <button class="flow-btn digit-choice" type="button" data-digit="9" aria-pressed="false">9</button>
+          </div>
+        </div>
+
+        <div class="guess-summary">
+          <span id="guessSummary">第 1 位 · 尚未选择数字</span>
+          <strong id="guessAmount">100 金币</strong>
+        </div>
+        <button class="flow-btn guess-confirm" id="guessConfirm" type="button" disabled>
+          <span class="button-content">确认下单 · 9.7×</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal" id="historyModal" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-card history-card" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+        <button class="modal-close" type="button" data-close-modal aria-label="关闭历史订单">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+        <p class="modal-kicker">ROUND HISTORY</p>
+        <div class="history-heading">
+          <div>
+            <h2 id="historyTitle">历史订单</h2>
+            <p>投入金币、时间、种子、哈希与完整计算过程。</p>
+          </div>
+          <button class="ghost-button" id="historyRefresh" type="button">刷新</button>
+        </div>
+
+        <section class="trend-panel" id="trendPanel" aria-label="近100期单双大小走势">
+          <div class="trend-heading">
+            <div class="trend-title">
+              <span class="trend-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 19V9M10 19V5M16 19v-7M22 19H2" />
+                </svg>
+              </span>
+              <div>
+                <b>近100期走势</b>
+                <span>从旧到新 · 大 / 小 / 单 / 双</span>
+              </div>
+            </div>
+            <div class="trend-tools">
+              <div class="trend-legend" aria-hidden="true">
+                <span class="is-big">大</span>
+                <span class="is-small">小</span>
+                <span class="is-odd">单</span>
+                <span class="is-even">双</span>
+                <span class="is-middle">和</span>
+              </div>
+              <button class="trend-toggle" id="trendToggle" type="button" aria-expanded="false" aria-controls="trendGrid">
+                <span id="trendToggleLabel">展开100期</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="trend-grid" id="trendGrid">
+            <div class="trend-loading">等待历史数据…</div>
+          </div>
+        </section>
+
+        <div class="history-list" id="historyList">
+          <div class="history-empty">
+            <span>❅</span>
+            <p>暂无历史期次。完成第一期开奖后即可追溯。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
+  </body>
+</html>
